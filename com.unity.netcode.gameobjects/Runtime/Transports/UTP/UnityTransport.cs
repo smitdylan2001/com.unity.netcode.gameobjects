@@ -333,18 +333,10 @@ namespace Unity.Netcode.Transports.UTP
             PacketDropRate = 0
         };
 
-        internal bool IsDisabledBySimulator { get; set; }
-
         internal static event Action TransportInitialized;
         internal static event Action TransportDisposed;
         internal NetworkDriver NetworkDriver => m_Driver;
         internal NetworkSettings NetworkSettings => m_NetworkSettings;
-        internal IList<NetworkPipeline> NetworkPipelines => new[]
-        {
-            m_UnreliableFragmentedPipeline,
-            m_UnreliableSequencedFragmentedPipeline,
-            m_ReliableSequencedPipeline
-        };
 
         private struct PacketLossCache
         {
@@ -839,11 +831,6 @@ namespace Unity.Netcode.Transports.UTP
 
         private void Update()
         {
-            if (IsDisabledBySimulator)
-            {
-                return;
-            }
-
             if (m_Driver.IsCreated)
             {
                 foreach (var kvp in m_SendQueue)
@@ -920,7 +907,7 @@ namespace Unity.Netcode.Transports.UTP
         {
             //Don't need to dispose of the buffers, they are filled with data pointers.
             m_Driver.GetPipelineBuffers(pipeline,
-                NetworkPipelineStageCollection.GetStageId(typeof(NetworkMetricsPipelineStage)),
+                NetworkPipelineStageId.Get<NetworkMetricsPipelineStage>(),
                 networkConnection,
                 out _,
                 out _,
@@ -947,7 +934,7 @@ namespace Unity.Netcode.Transports.UTP
             }
 
             m_Driver.GetPipelineBuffers(m_ReliableSequencedPipeline,
-                NetworkPipelineStageCollection.GetStageId(typeof(ReliableSequencedPipelineStage)),
+                NetworkPipelineStageId.Get<ReliableSequencedPipelineStage>(),
                 networkConnection,
                 out _,
                 out _,
@@ -969,7 +956,7 @@ namespace Unity.Netcode.Transports.UTP
             }
 
             m_Driver.GetPipelineBuffers(m_ReliableSequencedPipeline,
-                NetworkPipelineStageCollection.GetStageId(typeof(ReliableSequencedPipelineStage)),
+                NetworkPipelineStageId.Get<ReliableSequencedPipelineStage>(),
                 networkConnection,
                 out _,
                 out _,
@@ -1332,9 +1319,6 @@ namespace Unity.Netcode.Transports.UTP
             out NetworkPipeline unreliableSequencedFragmentedPipeline,
             out NetworkPipeline reliableSequencedPipeline)
         {
-#if MULTIPLAYER_TOOLS_1_0_0_PRE_7
-            NetworkPipelineStageCollection.RegisterPipelineStage(new NetworkMetricsPipelineStage());
-#endif
             var maxFrameTimeMS = 0;
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || UNITY_MP_TOOLS_NETSIM_ENABLED
@@ -1350,6 +1334,10 @@ namespace Unity.Netcode.Transports.UTP
                 maxFrameTimeMS: maxFrameTimeMS);
 
             driver = NetworkDriver.Create(m_NetworkSettings);
+
+#if MULTIPLAYER_TOOLS_1_0_0_PRE_7
+            driver.RegisterPipelineStage<NetworkMetricsPipelineStage>(new NetworkMetricsPipelineStage());
+#endif
 
 #if UNITY_EDITOR || DEVELOPMENT_BUILD || UNITY_MP_TOOLS_NETSIM_ENABLED
             if (DebugSimulator.PacketDelayMS > 0 || DebugSimulator.PacketDropRate > 0)
