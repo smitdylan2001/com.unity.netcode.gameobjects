@@ -333,8 +333,8 @@ namespace Unity.Netcode.Transports.UTP
             PacketDropRate = 0
         };
 
-        internal static event Action TransportInitialized;
-        internal static event Action TransportDisposed;
+        internal static event Action<UnityTransport> TransportInitialized;
+        internal static event Action<UnityTransport> TransportDisposed;
         internal NetworkDriver NetworkDriver => m_Driver;
         internal NetworkSettings NetworkSettings => m_NetworkSettings;
 
@@ -389,7 +389,7 @@ namespace Unity.Netcode.Transports.UTP
                 out m_UnreliableSequencedFragmentedPipeline,
                 out m_ReliableSequencedPipeline);
 
-            TransportInitialized?.Invoke();
+            TransportInitialized?.Invoke(this);
         }
 
         private void DisposeInternals()
@@ -408,7 +408,7 @@ namespace Unity.Netcode.Transports.UTP
 
             m_SendQueue.Clear();
 
-            TransportDisposed?.Invoke();
+            TransportDisposed?.Invoke(this);
         }
 
         private NetworkPipeline SelectSendPipeline(NetworkDelivery delivery)
