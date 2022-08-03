@@ -11,7 +11,6 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
-
 using Object = UnityEngine.Object;
 
 namespace Unity.Netcode
@@ -33,6 +32,8 @@ namespace Unity.Netcode
 
         internal bool IsInitialized { get; private set; }
 
+        INetworkSimulatorConfiguration m_CachedConfiguration;
+
         public INetworkSimulatorConfiguration SimulatorConfiguration
         {
             get => m_Configuration != null
@@ -43,10 +44,12 @@ namespace Unity.Netcode
                 if (value is Object networkTypeConfigurationObject)
                 {
                     m_Configuration = networkTypeConfigurationObject;
+                    m_ConfigurationReference = null;
                 }
                 else
                 {
                     m_ConfigurationReference = value;
+                    m_Configuration = null;
                 }
 
                 UpdateLiveParameters();
@@ -80,6 +83,22 @@ namespace Unity.Netcode
         void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        void OnEnable()
+        {
+            if (m_CachedConfiguration != null)
+            {
+                SimulatorConfiguration = m_CachedConfiguration;
+            }
+            UpdateLiveParameters();
+        }
+
+        void OnDisable()
+        {
+            m_CachedConfiguration = SimulatorConfiguration;
+            SimulatorConfiguration = NetworkTypePresets.None;
+            UpdateLiveParameters();
         }
     }
 }
