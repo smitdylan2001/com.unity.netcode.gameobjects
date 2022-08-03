@@ -1321,7 +1321,7 @@ namespace Unity.Netcode.Transports.UTP
         {
             var maxFrameTimeMS = 0;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || UNITY_MP_TOOLS_NETSIM_ENABLED
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || UNITY_MP_TOOLS_NETSIM_IMPLEMENTATION_ENABLED
             maxFrameTimeMS = 100;
             ConfigureSimulator();
 #endif
@@ -1339,7 +1339,7 @@ namespace Unity.Netcode.Transports.UTP
             driver.RegisterPipelineStage<NetworkMetricsPipelineStage>(new NetworkMetricsPipelineStage());
 #endif
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD || UNITY_MP_TOOLS_NETSIM_ENABLED
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || UNITY_MP_TOOLS_NETSIM_IMPLEMENTATION_ENABLED
             if (DebugSimulator.PacketDelayMS > 0 || DebugSimulator.PacketDropRate > 0)
             {
                 unreliableFragmentedPipeline = driver.CreatePipeline(
