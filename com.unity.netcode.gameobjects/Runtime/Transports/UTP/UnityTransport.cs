@@ -336,7 +336,6 @@ namespace Unity.Netcode.Transports.UTP
         internal static event Action<UnityTransport> TransportInitialized;
         internal static event Action<UnityTransport> TransportDisposed;
         internal NetworkDriver NetworkDriver => m_Driver;
-        internal NetworkSettings NetworkSettings => m_NetworkSettings;
 
         private struct PacketLossCache
         {
