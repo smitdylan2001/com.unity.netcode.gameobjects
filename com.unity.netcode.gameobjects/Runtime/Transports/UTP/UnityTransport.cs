@@ -346,6 +346,19 @@ namespace Unity.Netcode.Transports.UTP
             PacketDropRate = 0
         };
 
+        internal bool IsDisabledBySimulator { get; set; }
+
+        internal static event Action<UnityTransport> TransportInitialized;
+        internal static event Action<UnityTransport> TransportDisposed;
+        internal NetworkDriver NetworkDriver => m_Driver;
+        internal NetworkSettings NetworkSettings => m_NetworkSettings;
+        internal IList<NetworkPipeline> NetworkPipelines => new[]
+        {
+            m_UnreliableFragmentedPipeline,
+            m_UnreliableSequencedFragmentedPipeline,
+            m_ReliableSequencedPipeline
+        };
+
         private struct PacketLossCache
         {
             public int PacketsReceived;
@@ -396,6 +409,8 @@ namespace Unity.Netcode.Transports.UTP
                 out m_UnreliableFragmentedPipeline,
                 out m_UnreliableSequencedFragmentedPipeline,
                 out m_ReliableSequencedPipeline);
+
+            TransportInitialized?.Invoke(this);
         }
 
         private void DisposeInternals()
@@ -413,6 +428,8 @@ namespace Unity.Netcode.Transports.UTP
             }
 
             m_SendQueue.Clear();
+
+            TransportDisposed?.Invoke(this);
         }
 
         private NetworkPipeline SelectSendPipeline(NetworkDelivery delivery)
@@ -835,6 +852,11 @@ namespace Unity.Netcode.Transports.UTP
 
         private void Update()
         {
+            if (IsDisabledBySimulator)
+            {
+                return;
+            }
+
             if (m_Driver.IsCreated)
             {
                 foreach (var kvp in m_SendQueue)
@@ -1316,14 +1338,15 @@ namespace Unity.Netcode.Transports.UTP
 
         private void ConfigureSimulator()
         {
-            m_NetworkSettings.WithSimulatorStageParameters(
-                maxPacketCount: 300, // TODO Is there any way to compute a better value?
-                maxPacketSize: NetworkParameterConstants.MTU,
-                packetDelayMs: DebugSimulator.PacketDelayMS,
-                packetJitterMs: DebugSimulator.PacketJitterMS,
-                packetDropPercentage: DebugSimulator.PacketDropRate,
-                mode: ApplyMode.AllPackets
-            );
+            // m_NetworkSettings.WithSimulatorStageParameters(
+            //     300,
+            //     NetworkParameterConstants.MTU,
+            //     ApplyMode.AllPackets,
+            //     packetDelayMs: DebugSimulator.PacketDelayMS,
+            //     packetJitterMs: DebugSimulator.PacketJitterMS,
+            //     packetDropPercentage: DebugSimulator.PacketDropRate
+            // );
+            m_NetworkSettings.WithNetworkSimulatorParameters();
         }
 
         /// <summary>
@@ -1344,7 +1367,7 @@ namespace Unity.Netcode.Transports.UTP
 #endif
             var maxFrameTimeMS = 0;
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || UNITY_MP_TOOLS_NETSIM_IMPLEMENTATION_ENABLED
             maxFrameTimeMS = 100;
             ConfigureSimulator();
 #endif
@@ -1365,7 +1388,7 @@ namespace Unity.Netcode.Transports.UTP
             driver.RegisterPipelineStage<NetworkMetricsPipelineStage>(new NetworkMetricsPipelineStage());
 #endif
 
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
+#if UNITY_EDITOR || DEVELOPMENT_BUILD || UNITY_MP_TOOLS_NETSIM_IMPLEMENTATION_ENABLED
             if (DebugSimulator.PacketDelayMS > 0 || DebugSimulator.PacketDropRate > 0)
             {
                 unreliableFragmentedPipeline = driver.CreatePipeline(
